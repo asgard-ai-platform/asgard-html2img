@@ -8,6 +8,20 @@ function extractDimensions(html: string): {
   return m ? { width: parseInt(m[1]), height: parseInt(m[2]) } : null;
 }
 
+async function resolveImports(html: string): Promise<string> {
+  let resolved = html;
+  for (const match of html.matchAll(
+    /@import\s+(?:url\()?["']([^"']+)["'](?:\))?;/g
+  )) {
+    try {
+      const resp = await fetch(match[1]);
+      const css = await resp.text();
+      resolved = resolved.replace(match[0], css);
+    } catch {}
+  }
+  return resolved;
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.json();
   const { html, width, height, deviceScaleFactor = 2 } = body;
@@ -30,6 +44,8 @@ export async function POST(request: NextRequest) {
   const vw = typeof width === "number" ? width : dims?.width ?? 1200;
   const vh = typeof height === "number" ? height : dims?.height ?? 800;
 
+  const resolvedHtml = await resolveImports(html);
+
   try {
     const response = await fetch(
       `https://api.cloudflare.com/client/v4/accounts/${accountId}/browser-rendering/screenshot`,
@@ -40,7 +56,7 @@ export async function POST(request: NextRequest) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          html,
+          html: resolvedHtml,
           viewport: {
             width: vw,
             height: vh,
