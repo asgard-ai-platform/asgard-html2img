@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# asgard-html2img
+
+A web-based HTML-to-image rendering tool with a live preview editor and production-grade server-side screenshot pipeline powered by Cloudflare Browser Rendering.
+
+## Features
+
+- **Live Preview** — Edit HTML on the left, see the rendered result on the right in real time
+- **Client Download** — Capture the preview as PNG directly in the browser via [dom-to-image-more](https://github.com/feathers-studio/dom-to-image-more) (SVG foreignObject-based)
+- **CORS Proxy** — External images are automatically proxied to avoid CORS restrictions in the client-side download
+- **Server API** — `/api/html2img` renders the HTML with a headless browser on Cloudflare's edge and returns a high‑resolution PNG
+- **Google Fonts** — Automatically resolves `@import` rules by inlining `@font-face` declarations before capture
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16 (App Router) + React 19 |
+| Language | TypeScript |
+| Styling | Tailwind CSS 4 |
+| Client Capture | dom-to-image-more |
+| Server Capture | Cloudflare Browser Rendering REST API |
+| Deployment | Cloudflare Workers via @opennextjs/cloudflare |
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) (or the port shown in the terminal).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Required for the server screenshot API:
 
-## Learn More
+| Variable | Description |
+|----------|-------------|
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
+| `CLOUDFLARE_BROWSER_RENDERING_API_TOKEN` | API token with Browser Rendering Edit permission |
 
-To learn more about Next.js, take a look at the following resources:
+Copy `.env.example` to `.env` and fill them in. The client-side download does not require these.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## API
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### `POST /api/html2img`
 
-## Deploy on Vercel
+Renders HTML into a PNG using Cloudflare Browser Rendering.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Body**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```json
+{
+  "html": "<div>…</div>",
+  "width": 480,
+  "height": 720,
+  "deviceScaleFactor": 2
+}
+```
+
+`width`, `height`, and `deviceScaleFactor` are optional. Dimensions are auto-detected from CSS when possible.
+
+**Response** — `image/png` binary.
+
+### `GET /api/proxy?url=…`
+
+Proxies an external image with CORS headers. Used internally by the client-side preview.
+
+## Deployment
+
+```bash
+# Build for Cloudflare Workers
+pnpm cf:build
+
+# Build + deploy
+pnpm cf:deploy
+```
+
+The build output goes to `.open-next/`. Connect the GitHub repository via Cloudflare Dashboard → Workers & Pages → asgard-html2img → Settings → Git integration for automatic deployments on push.
+
+## Project Structure
+
+```
+src/
+  app/
+    page.tsx               — Main UI (editor + preview + client download)
+    api/
+      html2img/route.ts    — Cloudflare Browser Rendering screenshot endpoint
+      proxy/route.ts       — CORS image proxy
+    globals.css            — Dark theme CSS variables
+    layout.tsx             — Root layout (Inter font)
+wrangler.jsonc             — Cloudflare Workers config
+```
