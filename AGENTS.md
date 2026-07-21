@@ -1,5 +1,7 @@
 # NEVER push, force push, commit, amend, or otherwise modify git history or remote branches without asking the user for explicit permission first. Always confirm with the user before performing any commit or push.
 
+# Before any commit, run `pnpm lint` and verify it passes with 0 errors. Only proceed to commit + push after lint is clean.
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
