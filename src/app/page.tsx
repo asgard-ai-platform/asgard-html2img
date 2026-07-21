@@ -53,7 +53,7 @@ export default function Home() {
     await resolveStyleImports(previewRef.current);
     await document.fonts.ready;
     const blob = await domtoimage.toBlob(previewRef.current, {
-      bgColor: "#ffffff",
+      bgcolor: "#ffffff",
       scale: window.devicePixelRatio || 2,
     });
     const url = URL.createObjectURL(blob);
